@@ -2,10 +2,13 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+  
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Encuesta Premium con n8n</title>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.2/papaparse.min.js"></script>
+
   <style>
     :root {
       --primary: #6C5CE7;
@@ -309,13 +312,15 @@
 
   try {
     const res = await fetch(sheetUrl);
-    const data = await res.text();
-    const rows = data.split('\n').filter(row => row.trim() !== '');
+    const csvText = await res.text();
 
-    questions = rows.map((row, index) => ({
-      id: index + 1,
-      text: row.split(',')[0].replace(/"/g, '')
-    }));
+    const parsed = Papa.parse(csvText, { header: true });
+    questions = parsed.data
+      .filter(row => row.Pregunta && row.Pregunta.trim() !== '')
+      .map((row, index) => ({
+        id: index + 1,
+        text: row.Pregunta.trim()
+      }));
 
     renderQuestions();
   } catch (error) {
@@ -323,6 +328,7 @@
     console.error(error);
   }
 }
+
 
 fetchQuestions();
     });
