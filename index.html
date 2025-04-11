@@ -327,7 +327,7 @@
         }
       });
 
-      async function fetchQuestions() {
+      async function fetchPreguntasDesdeSheets() {
   const sheetUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRGaQUicMab31gW8tHrnsf-qp5X8dTf599d8B3SfBHV-08KK-O5v3gn135DeD1cakS-PA8e5Nnp26Vq/pub?gid=0&single=true&output=csv';
 
   try {
@@ -350,7 +350,12 @@
 }
 
 
-fetchQuestions();
+
+document.addEventListener('DOMContentLoaded', function () {
+  fetchPreguntasDesdeSheets(); // 👈 esta reemplaza a fetchQuestions()
+
+  // ... resto de tu código
+
     });
   </script>
 </body>
