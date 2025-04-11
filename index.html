@@ -279,7 +279,7 @@
         if (allAnswered) {
           try {
             // 👇 Reemplaza con tu webhook de n8n (https://tudominio.n8n.cloud/webhook/abc123)
-            const webhookUrl = 'https://TU_WEBHOOK_DE_N8N';
+            const webhookUrl = 'http://localhost:5678/webhook/encuesta-webhook';
             
             const response = await fetch(webhookUrl, {
               method: 'POST',
