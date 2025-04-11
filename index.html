@@ -264,7 +264,62 @@
           const res = await fetch(sheetUrl);
           const csvText = await res.text();
 
-          const parsed = Papa.parse
+                    const parsed = Papa.parse(csvText, {
+            header: true,
+            skipEmptyLines: true
+          });
+
+          questions = parsed.data
+            .filter(row => row.Pregunta && row.Pregunta.trim() !== '')
+            .map((row, index) => ({
+              id: index + 1,
+              text: row.Pregunta.trim()
+            }));
+
+          renderQuestions();
+        } catch (error) {
+          console.error('Error cargando preguntas:', error);
+        }
+      }
+
+      document.getElementById('addQuestion').addEventListener('click', () => {
+        const newText = prompt('Escribe la nueva pregunta:');
+        if (newText && newText.trim() !== '') {
+          const newId = questions.length > 0 ? Math.max(...questions.map(q => q.id)) + 1 : 1;
+          questions.push({ id: newId, text: newText.trim() });
+          renderQuestions();
+        }
+      });
+
+      document.getElementById('submitBtn').addEventListener('click', async () => {
+        const respuestas = {};
+        questions.forEach(q => {
+          const selected = document.querySelector(`input[name="q${q.id}"]:checked`);
+          respuestas[q.text] = selected ? selected.value : null;
+        });
+
+        const payload = {
+          timestamp: new Date().toISOString(),
+          preguntas_json: JSON.stringify(questions.map(q => q.text)),
+          respuestas_json: JSON.stringify(respuestas)
+        };
+
+        try {
+          const res = await fetch('http://localhost:5678/webhook-test/entrada_encuesta', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          alert('¡Respuestas enviadas correctamente!');
+        } catch (err) {
+          alert('Hubo un error al enviar las respuestas.');
+          console.error(err);
+        }
+      });
+
+      fetchQuestions();
+    });
+
 
 </body>
 </html>
