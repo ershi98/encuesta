@@ -2,13 +2,10 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Encuesta Premium con n8n</title>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.2/papaparse.min.js"></script>
-
   <style>
     :root {
       --primary: #6C5CE7;
@@ -196,7 +193,7 @@
     </div>
   </div>
 
-    <script>
+  <script>
     document.addEventListener('DOMContentLoaded', function() {
       let questions = [];
 
@@ -257,69 +254,78 @@
         });
       }
 
-      async function fetchQuestions() {
-        const sheetUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRGaQUicMab31gW8tHrnsf-qp5X8dTf599d8B3SfBHV-08KK-O5v3gn135DeD1cakS-PA8e5Nnp26Vq/pub?gid=0&single=true&output=csv';
-
-        try {
-          const res = await fetch(sheetUrl);
-          const csvText = await res.text();
-
-                    const parsed = Papa.parse(csvText, {
-            header: true,
-            skipEmptyLines: true
-          });
-
-          questions = parsed.data
-            .filter(row => row.Pregunta && row.Pregunta.trim() !== '')
-            .map((row, index) => ({
-              id: index + 1,
-              text: row.Pregunta.trim()
-            }));
-
-          renderQuestions();
-        } catch (error) {
-          console.error('Error cargando preguntas:', error);
-        }
-      }
-
-      document.getElementById('addQuestion').addEventListener('click', () => {
-        const newText = prompt('Escribe la nueva pregunta:');
-        if (newText && newText.trim() !== '') {
-          const newId = questions.length > 0 ? Math.max(...questions.map(q => q.id)) + 1 : 1;
-          questions.push({ id: newId, text: newText.trim() });
+      document.getElementById('addQuestion').addEventListener('click', function() {
+        const newId = questions.length > 0 ? Math.max(...questions.map(q => q.id)) + 1 : 1;
+        const text = prompt('Ingrese el texto de la nueva pregunta:');
+        if (text) {
+          questions.push({ id: newId, text: text });
           renderQuestions();
         }
       });
 
-      document.getElementById('submitBtn').addEventListener('click', async () => {
-        const respuestas = {};
+      // 🔥 Configuración para n8n (Reemplaza la URL)
+      document.getElementById('submitBtn').addEventListener('click', async function() {
+        const answers = {};
+        let allAnswered = true;
+        
         questions.forEach(q => {
           const selected = document.querySelector(`input[name="q${q.id}"]:checked`);
-          respuestas[q.text] = selected ? selected.value : null;
+          if (selected) {
+            answers[`q${q.id}`] = selected.value;
+          } else {
+            allAnswered = false;
+          }
         });
-
-        const payload = {
-          timestamp: new Date().toISOString(),
-          preguntas_json: JSON.stringify(questions.map(q => q.text)),
-          respuestas_json: JSON.stringify(respuestas)
-        };
-
-        try {
-          const res = await fetch('http://localhost:5678/webhook-test/entrada_encuesta', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-          });
-          alert('¡Respuestas enviadas correctamente!');
-        } catch (err) {
-          alert('Hubo un error al enviar las respuestas.');
-          console.error(err);
+        
+        if (allAnswered) {
+          try {
+            // 👇 Reemplaza con tu webhook de n8n (https://tudominio.n8n.cloud/webhook/abc123)
+            const webhookUrl = 'http://localhost:5678/webhook/encuesta-webhook';
+            
+            const response = await fetch(webhookUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ 
+                survey_data: answers,
+                timestamp: new Date().toISOString()
+              })
+            });
+            
+            if (response.ok) {
+              alert('¡Respuestas enviadas a n8n con éxito!');
+            } else {
+              alert('Error al enviar. Código: ' + response.status);
+            }
+          } catch (error) {
+            alert('Error de conexión: ' + error.message);
+          }
+        } else {
+          alert('Por favor responde todas las preguntas antes de enviar.');
         }
       });
 
-      fetchQuestions();
+      async function fetchQuestions() {
+  const sheetUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRGaQUicMab31gW8tHrnsf-qp5X8dTf599d8B3SfBHV-08KK-O5v3gn135DeD1cakS-PA8e5Nnp26Vq/pub?gid=0&single=true&output=csv';
+
+  try {
+    const res = await fetch(sheetUrl);
+    const data = await res.text();
+    const rows = data.split('\n').filter(row => row.trim() !== '');
+
+    questions = rows.map((row, index) => ({
+      id: index + 1,
+      text: row.split(',')[0].replace(/"/g, '')
+    }));
+
+    renderQuestions();
+  } catch (error) {
+    alert('No se pudieron cargar las preguntas desde Sheets');
+    console.error(error);
+  }
+}
+
+fetchQuestions();
     });
-
-
+  </script>
 </body>
 </html>
