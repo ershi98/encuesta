@@ -194,12 +194,7 @@
 
   <script>
     document.addEventListener('DOMContentLoaded', function() {
-      let questions = [
-        { id: 1, text: "¿Te gusta el producto?" },
-        { id: 2, text: "¿Lo recomendarías a un amigo?" },
-        { id: 3, text: "¿Es fácil de usar?" },
-        { id: 4, text: "¿El precio es adecuado?" }
-      ];
+      let questions = [];
 
       function updateProgress() {
         const answered = document.querySelectorAll('input[type="radio"]:checked').length;
