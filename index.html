@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Encuesta Premium con n8n</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #6C5CE7;
+      --yes: #00B894;
+      --no: #D63031;
+      --neutral: #636E72;
+      --bg-color: #f0f2f5;
+      --card-bg: #ffffff;
+    }
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: var(--bg-color);
+      min-height: 100vh;
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .survey-container {
+      width: 100%;
+      max-width: 700px;
+      background: var(--card-bg);
+      border-radius: 20px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+      overflow: hidden;
+    }
+    .survey-header {
+      background: var(--primary);
+      color: white;
+      padding: 20px;
+      text-align: center;
+    }
+    .progress-container {
+      padding: 0 20px;
+      margin-top: 15px;
+    }
+    .progress-text {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      color: var(--neutral);
+      font-weight: 600;
+    }
+    .progress-bar {
+      height: 8px;
+      background: #e0e0e0;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: var(--primary);
+      width: 0%;
+      transition: width 0.4s;
+      border-radius: 4px;
+    }
+    .questions-container {
+      padding: 20px;
+    }
+    .question-card {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+      border: 1px solid #f0f0f0;
+    }
+    .question-text {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #2d3436;
+      margin-bottom: 15px;
+    }
+    .options-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+    .option-label {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      background: #f5f6fa;
+      transition: background 0.2s;
+    }
+    .option-label:hover {
+      background: #eaecef;
+    }
+    .custom-radio {
+      width: 20px;
+      height: 20px;
+      border: 2px solid #b2bec3;
+      border-radius: 50%;
+      margin-bottom: 8px;
+      transition: all 0.2s;
+    }
+    input[type="radio"] {
+      display: none;
+    }
+    input[type="radio"]:checked + .custom-radio {
+      border-width: 6px;
+    }
+    #yes-1:checked + .custom-radio,
+    [id^="yes"]:checked + .custom-radio {
+      border-color: var(--yes);
+    }
+    #no-1:checked + .custom-radio,
+    [id^="no"]:checked + .custom-radio {
+      border-color: var(--no);
+    }
+    #neutral-1:checked + .custom-radio,
+    [id^="neutral"]:checked + .custom-radio {
+      border-color: var(--neutral);
+    }
+    .option-text {
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: #636e72;
+    }
+    .actions {
+      display: flex;
+      justify-content: space-between;
+      padding: 20px;
+      border-top: 1px solid #edf1f5;
+    }
+    .btn {
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s;
+    }
+    .btn-add {
+      background: #f5f6fa;
+      color: #636e72;
+    }
+    .btn-add:hover {
+      background: #eaecef;
+    }
+    .btn-submit {
+      background: var(--primary);
+      color: white;
+    }
+    .btn-submit:hover {
+      background: #5a4bd9;
+    }
+    .delete-btn {
+      background: none;
+      border: none;
+      color: var(--no);
+      cursor: pointer;
+      font-size: 1.2rem;
+      margin-left: auto;
+    }
+  </style>
+</head>
+<body>
+  <div class="survey-container">
+    <div class="survey-header">
+      <h1>Encuesta de Satisfacción</h1>
+    </div>
+
+    <div class="progress-container">
+      <div class="progress-text">
+        <span id="progress-count">0/0</span>
+        <span>Completado: <span id="progress-percent">0%</span></span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="progress-fill"></div>
+      </div>
+    </div>
+
+    <div class="questions-container" id="questionsContainer">
+      <!-- Preguntas se cargarán aquí -->
+    </div>
+
+    <div class="actions">
+      <button class="btn btn-add" id="addQuestion">+ Añadir Pregunta</button>
+      <button class="btn btn-submit" id="submitBtn">Enviar Respuestas</button>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      let questions = [
+        { id: 1, text: "¿Te gusta el producto?" },
+        { id: 2, text: "¿Lo recomendarías a un amigo?" },
+        { id: 3, text: "¿Es fácil de usar?" },
+        { id: 4, text: "¿El precio es adecuado?" }
+      ];
+
+      function updateProgress() {
+        const answered = document.querySelectorAll('input[type="radio"]:checked').length;
+        const total = questions.length;
+        const percent = total > 0 ? Math.round((answered / total) * 100) : 0;
+        
+        document.getElementById('progress-count').textContent = `${answered}/${total}`;
+        document.getElementById('progress-percent').textContent = `${percent}%`;
+        document.getElementById('progress-fill').style.width = `${percent}%`;
+      }
+
+      function renderQuestions() {
+        const container = document.getElementById('questionsContainer');
+        container.innerHTML = '';
+        
+        questions.forEach((q, index) => {
+          container.innerHTML += `
+            <div class="question-card" data-id="${q.id}">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div class="question-text">${index + 1}. ${q.text}</div>
+                <button class="delete-btn" data-id="${q.id}">✕</button>
+              </div>
+              <div class="options-grid">
+                <label class="option-label" for="yes-${q.id}">
+                  <input type="radio" name="q${q.id}" value="yes" id="yes-${q.id}">
+                  <div class="custom-radio"></div>
+                  <span class="option-text">Sí</span>
+                </label>
+                <label class="option-label" for="no-${q.id}">
+                  <input type="radio" name="q${q.id}" value="no" id="no-${q.id}">
+                  <div class="custom-radio"></div>
+                  <span class="option-text">No</span>
+                </label>
+                <label class="option-label" for="neutral-${q.id}">
+                  <input type="radio" name="q${q.id}" value="no_answer" id="neutral-${q.id}">
+                  <div class="custom-radio"></div>
+                  <span class="option-text">Prefiero no responder</span>
+                </label>
+              </div>
+            </div>
+          `;
+        });
+
+        updateProgress();
+
+        document.querySelectorAll('input[type="radio"]').forEach(radio => {
+          radio.addEventListener('change', updateProgress);
+        });
+
+        document.querySelectorAll('.delete-btn').forEach(btn => {
+          btn.addEventListener('click', function() {
+            const id = parseInt(this.getAttribute('data-id'));
+            questions = questions.filter(q => q.id !== id);
+            renderQuestions();
+          });
+        });
+      }
+
+      document.getElementById('addQuestion').addEventListener('click', function() {
+        const newId = questions.length > 0 ? Math.max(...questions.map(q => q.id)) + 1 : 1;
+        const text = prompt('Ingrese el texto de la nueva pregunta:');
+        if (text) {
+          questions.push({ id: newId, text: text });
+          renderQuestions();
+        }
+      });
+
+      // 🔥 Configuración para n8n (Reemplaza la URL)
+      document.getElementById('submitBtn').addEventListener('click', async function() {
+        const answers = {};
+        let allAnswered = true;
+        
+        questions.forEach(q => {
+          const selected = document.querySelector(`input[name="q${q.id}"]:checked`);
+          if (selected) {
+            answers[`q${q.id}`] = selected.value;
+          } else {
+            allAnswered = false;
+          }
+        });
+        
+        if (allAnswered) {
+          try {
+            // 👇 Reemplaza con tu webhook de n8n (https://tudominio.n8n.cloud/webhook/abc123)
+            const webhookUrl = 'https://TU_WEBHOOK_DE_N8N';
+            
+            const response = await fetch(webhookUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ 
+                survey_data: answers,
+                timestamp: new Date().toISOString()
+              })
+            });
+            
+            if (response.ok) {
+              alert('¡Respuestas enviadas a n8n con éxito!');
+            } else {
+              alert('Error al enviar. Código: ' + response.status);
+            }
+          } catch (error) {
+            alert('Error de conexión: ' + error.message);
+          }
+        } else {
+          alert('Por favor responde todas las preguntas antes de enviar.');
+        }
+      });
+
+      renderQuestions();
+    });
+  </script>
+</body>
+</html>
