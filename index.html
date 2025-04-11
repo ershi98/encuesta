@@ -260,10 +260,30 @@
       document.getElementById('addQuestion').addEventListener('click', function() {
         const newId = questions.length > 0 ? Math.max(...questions.map(q => q.id)) + 1 : 1;
         const text = prompt('Ingrese el texto de la nueva pregunta:');
-        if (text) {
-          questions.push({ id: newId, text: text });
-          renderQuestions();
-        }
+       if (text) {
+  try {
+    const webhookUrl = 'http://localhost:5678/webhook/entrada_encuesta';
+
+    const response = await fetch(webhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: 'nueva_pregunta',
+        pregunta: text
+      })
+    });
+
+    if (response.ok) {
+      alert('Pregunta añadida correctamente. Recargando...');
+      await fetchPreguntasDesdeSheets(); // <-- función que leerá de nuevo las preguntas
+    } else {
+      alert('Error al guardar la nueva pregunta');
+    }
+  } catch (error) {
+    alert('Error al conectar con el servidor: ' + error.message);
+  }
+}
+
       });
 
       // 🔥 Configuración para n8n (Reemplaza la URL)
